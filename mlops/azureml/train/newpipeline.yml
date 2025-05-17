@@ -1,0 +1,85 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: ________-_________-___________  # Provide the display name for the pipeline
+experiment_name: ________-________-__________  # Provide the experiment name
+description: ____________-__________-______-____________-______  # Provide the description for the pipeline
+
+inputs:
+  raw_data:
+    type: uri_file
+    path: azureml:used-cars-data@latest
+
+outputs:
+  train_data:
+    type: _______  # Specify the type for train_data output
+  test_data:
+    type: _______  # Specify the type for test_data output
+  model_info_output_path:
+    type: _______  # Specify the type for model_info_output_path output
+
+settings:
+  default_datastore: azureml:workspaceblobstore
+  default_compute: azureml:cpu-cluster
+  continue_on_step_failure: false
+
+jobs:
+  prep_data:
+    name: ________  # Provide the job name
+    display_name: ________-________  # Provide the display name for the job
+    code: ../../../data-science/src
+    command: >-
+      python prep.py  
+      --raw_data ${{inputs.raw_data}} 
+      --train_data ${{outputs.train_data}}
+      --test_data ${{outputs.test_data}} 
+    environment: azureml:used-cars-train-env@latest
+    inputs:
+      raw_data: ${{parent.inputs.raw_data}}
+    outputs:
+      train_data: ${{parent.outputs.train_data}}
+      test_data: ${{parent.outputs.test_data}}
+
+  sweep_step:
+    name: _______
+    display_name: ________-______  # Hint: Provide the display name for the job
+    type: sweep
+    inputs:
+      train_data: ${{parent.jobs.prep_data.outputs.train_data}}
+      test_data: ${{parent.jobs.prep_data.outputs.test_data}}
+    outputs:
+      model_output:
+        type: mlflow_model
+    sampling_algorithm: ______  # Specify the sampling algorithm
+    trial: ./train.yml  # Refers to a separate command component
+    search_space:
+      n_estimators:
+        type: choice
+        values: [10, 20, 30, 50]
+      max_depth:
+        type: _______  # Specify the type for max_depth
+        values: _______  # Provide the values for max_depth
+    objective:
+      goal: minimize
+      primary_metric: MSE
+    limits:
+      max_total_trials: 20
+      max_concurrent_trials: 10
+      timeout: 7200
+
+
+  register_model:
+    name: _________  # Provide the job name
+    display_name: ________-_______  # Provide the display name for the job
+    code: ../../../data-science/src
+    command: >-
+      python register.py 
+      --model_name ${{inputs.model_name}} 
+      --model_path ${{inputs.model_path}} 
+      --model_info_output_path ${{outputs.model_info_output_path}}
+    environment: azureml:used-cars-train-env@latest
+    inputs:
+      model_name: "used_cars_price_prediction_model"
+      model_path: ${{parent.jobs.sweep_step.outputs.model_output}}
+    outputs:
+      model_info_output_path: ${{parent.outputs.model_info_output_path}}
+
