@@ -4,18 +4,18 @@ name: train_model
 display_name: train_model
 inputs: 
   train_data:
-    type: _______  # Specify the type for train_data
+    type: uri_folder  # Specify the type for train_data
   test_data:
-    type: _______  # Specify the type for test_data
+    type: uri_folder  # Specify the type for test_data
   n_estimators:
     type: integer  
     default: 100 
   max_depth:
-    type: _______  # Specify the type for max_depth
-    default: _____  # Provide the default value for max_depth
+    type: integer  # Specify the type for max_depth
+    default: 5  # Provide the default value for max_depth
 outputs:
   model_output:
-    type: ________  # Specify the type for model_output
+    type: mlflow_model  # Specify the type for model_output
 code: ../../../data-science/src
 command: >-
   python train.py 

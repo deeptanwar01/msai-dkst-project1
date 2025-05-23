@@ -1,8 +1,8 @@
 $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 type: pipeline
-display_name: ________-_________-___________  # Provide the display name for the pipeline
-experiment_name: ________-________-__________  # Provide the experiment name
-description: ____________-__________-______-____________-______  # Provide the description for the pipeline
+display_name: usedcars_pricing_prediction_pipeline
+experiment_name: usedcars-pricing-prediction
+description: Training Pipeline to predict used cars pricing using Decision Tree classifier
 
 inputs:
   raw_data:
@@ -11,11 +11,11 @@ inputs:
 
 outputs:
   train_data:
-    type: _______  # Specify the type for train_data output
+    type: uri_file  # Specify the type for train_data output
   test_data:
-    type: _______  # Specify the type for test_data output
+    type: uri_file  # Specify the type for test_data output
   model_info_output_path:
-    type: _______  # Specify the type for model_info_output_path output
+    type: uri_file  # Specify the type for model_info_output_path output
 
 settings:
   default_datastore: azureml:workspaceblobstore
@@ -24,15 +24,15 @@ settings:
 
 jobs:
   prep_data:
-    name: ________  # Provide the job name
-    display_name: ________-________  # Provide the display name for the job
+    name: prep_data  # Provide the job name
+    display_name: prep-data  # Provide the display name for the job
     code: ../../../data-science/src
     command: >-
       python prep.py  
       --raw_data ${{inputs.raw_data}} 
       --train_data ${{outputs.train_data}}
       --test_data ${{outputs.test_data}} 
-    environment: azureml:used-cars-train-env@latest
+    environment: azureml:machine_learning_E2E@latest
     inputs:
       raw_data: ${{parent.inputs.raw_data}}
     outputs:
@@ -40,8 +40,8 @@ jobs:
       test_data: ${{parent.outputs.test_data}}
 
   sweep_step:
-    name: _______
-    display_name: ________-______  # Hint: Provide the display name for the job
+    name: sweep_job
+    display_name: sweep-job  # Hint: Provide the display name for the job
     type: sweep
     inputs:
       train_data: ${{parent.jobs.prep_data.outputs.train_data}}
@@ -49,15 +49,15 @@ jobs:
     outputs:
       model_output:
         type: mlflow_model
-    sampling_algorithm: ______  # Specify the sampling algorithm
+    sampling_algorithm: random  # Specify the sampling algorithm
     trial: ./train.yml  # Refers to a separate command component
     search_space:
       n_estimators:
         type: choice
         values: [10, 20, 30, 50]
       max_depth:
-        type: _______  # Specify the type for max_depth
-        values: _______  # Provide the values for max_depth
+        type: choice  # Specify the type for max_depth
+        values: [5, 10, 15, 20, None]  # Provide the values for max_depth
     objective:
       goal: minimize
       primary_metric: MSE
@@ -68,8 +68,8 @@ jobs:
 
 
   register_model:
-    name: _________  # Provide the job name
-    display_name: ________-_______  # Provide the display name for the job
+    name: register_model  # Provide the job name
+    display_name: register-model  # Provide the display name for the job
     code: ../../../data-science/src
     command: >-
       python register.py 
